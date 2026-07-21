@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>In-Hand Salary Calculator | Calculate Take-Home Pay, PF, Gratuity & PT</title>
+  <meta name="description" content="Calculate your net monthly in-hand take-home salary from your Annual CTC. Includes Provident Fund (PF), Gratuity, Professional Tax (₹200/mo), and Income Tax breakdown.">
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  
+  <!-- Bootstrap Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  
+  <!-- Custom Styling -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- Top App Navigation / Header -->
+  <header class="app-header mb-4">
+    <div class="container d-flex align-items-center justify-content-between">
+      <div class="d-flex align-items-center gap-3">
+        <div class="kpi-icon pf shadow-sm">
+          <i class="bi bi-wallet2 fs-4"></i>
+        </div>
+        <div>
+          <h1 class="h4 mb-0 d-flex align-items-center gap-2">
+            In-Hand <span class="gradient-text">Salary Calculator</span>
+            <span class="brand-badge d-none d-sm-inline-block">India FY 2026-27</span>
+          </h1>
+          <p class="text-muted small mb-0">Compute Take-Home Pay, PF, Gratuity & Professional Tax</p>
+        </div>
+      </div>
+      
+      <div class="d-flex align-items-center gap-2">
+        <button id="themeToggleBtn" class="btn-theme-toggle" title="Toggle Theme" aria-label="Toggle Theme">
+          <i class="bi bi-moon-stars-fill" id="themeIcon"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="container mb-5">
+    <div class="row g-4">
+      
+      <!-- Left Column: Inputs & Controls -->
+      <div class="col-lg-5 col-xl-4">
+        <div class="glass-card p-4 h-100 animate-fade-in">
+          <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2">
+            <h2 class="h5 mb-0"><i class="bi bi-sliders text-primary me-2"></i>Salary Structure</h2>
+            <button type="button" id="resetBtn" class="btn btn-sm btn-outline-secondary rounded-pill py-1 px-3">
+              <i class="bi bi-arrow-counterclockwise me-1"></i>Reset
+            </button>
+          </div>
+
+          <!-- Annual CTC Input -->
+          <div class="mb-4">
+            <label for="ctcInput" class="form-label d-flex justify-content-between align-items-center">
+              <span>Annual CTC (Cost to Company)</span>
+              <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill fs-7 fw-semibold" id="ctcFormattedBadge">₹ 12,00,000 / yr</span>
+            </label>
+            
+            <div class="input-group input-group-lg mb-2">
+              <span class="input-group-text">₹</span>
+              <input type="number" id="ctcInput" class="form-control fw-bold fs-5" value="1200000" min="100000" max="100000000" step="10000" placeholder="e.g. 1200000">
+            </div>
+
+            <!-- CTC Range Slider -->
+            <input type="range" class="form-range" id="ctcRange" min="100000" max="5000000" step="25000" value="1200000">
+
+            <!-- Presets -->
+            <div class="d-flex flex-wrap gap-1 mt-2">
+              <button class="preset-btn" data-value="500000">₹5 Lakhs</button>
+            </div>
+          </div>
+
+          <!-- Basic Pay Percentage -->
+          <div class="mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <label for="basicPercentRange" class="form-label mb-0">Basic Pay (% of CTC)</label>
+              <span class="fw-bold text-primary" id="basicPercentVal">50%</span>
+            </div>
+            <input type="range" class="form-range" id="basicPercentRange" min="30" max="70" step="1" value="50">
+            <small class="text-muted d-block">Monthly Basic: <span id="monthlyBasicText" class="fw-semibold">₹ 50,000</span></small>
+          </div>
+
+          <!-- Provident Fund (PF) Options -->
+          <div class="mb-3">
+            <label class="form-label d-block mb-1">Provident Fund (PF) Rule</label>
+            <div class="segmented-control mb-2">
+              <input type="radio" name="pfRule" id="pfUncapped" value="uncapped" checked>
+              <label for="pfUncapped" title="12% of actual basic pay">12% Actual Basic</label>
+              
+              <input type="radio" name="pfRule" id="pfCapped" value="capped">
+              <label for="pfCapped" title="Capped at ₹1,800/mo (12% of ₹15,000)">Capped (₹1,800/mo)</label>
+            </div>
+            
+            <div class="form-check form-switch mb-1">
+              <input class="form-check-input" type="checkbox" id="employerPfInCtc" checked>
+              <label class="form-check-label small text-muted" for="employerPfInCtc">Employer PF (12%) included in CTC</label>
+            </div>
+          </div>
+
+          <!-- Gratuity Option -->
+          <div class="mb-3">
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" id="gratuityInCtc" checked>
+              <label class="form-check-label text-main fw-semibold" for="gratuityInCtc">Gratuity Included in CTC</label>
+            </div>
+            <small class="text-muted d-block ms-4">Calculated at ~4.81% of Basic pay (₹<span id="monthlyGratuityText">2,404</span>/mo)</small>
+          </div>
+
+          <!-- Professional Tax (Fixed 200 INR/mo) -->
+          <div class="mb-3 p-3 bg-body-tertiary rounded-3 border border-secondary-subtle">
+            <div class="d-flex align-items-center justify-content-between">
+              <div>
+                <span class="fw-semibold text-heading d-block">Professional Tax (PT)</span>
+                <small class="text-muted">Standard statutory deduction</small>
+              </div>
+              <span class="badge-pt">₹ 200 / month</span>
+            </div>
+          </div>
+
+          <!-- Income Tax Regime -->
+          <div class="mb-2">
+            <label class="form-label mb-1">Income Tax Slab Mode</label>
+            <div class="segmented-control">
+              <input type="radio" name="taxRegime" id="regimeNew" value="new" checked>
+              <label for="regimeNew">New Tax Regime</label>
+              
+              <input type="radio" name="taxRegime" id="regimeZero" value="zero">
+              <label for="regimeZero">No Tax / Exemption</label>
+            </div>
+            <small class="text-muted d-block mt-1">Includes ₹75,000 Standard Deduction &amp; 100% Tax Rebate up to ₹12.75 Lakhs net taxable income.</small>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Right Column: Results Dashboard -->
+      <div class="col-lg-7 col-xl-8">
+        <div class="d-flex flex-column gap-4">
+
+          <!-- Hero Monthly In-Hand Card -->
+          <div class="glass-card hero-kpi-card p-4 p-md-5 animate-fade-in">
+            <div class="row align-items-center">
+              <div class="col-md-7 mb-3 mb-md-0">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                  <span class="badge bg-white text-dark rounded-pill fw-bold px-3 py-1 text-uppercase">Monthly Income</span>
+                  <small class="text-white-50"><i class="bi bi-check-circle-fill text-warning me-1"></i>Net Take-Home</small>
+                </div>
+                <h2 class="display-5 fw-extrabold mb-1" id="monthlyInHand">₹ 0</h2>
+                <p class="text-white-50 mb-0">Annual Take-Home: <strong id="annualInHand" class="text-white">₹ 0</strong></p>
+              </div>
+              <div class="col-md-5 text-md-end border-top border-white-10 pt-3 pt-md-0 border-md-top-0">
+                <div class="p-3 rounded-3 bg-black bg-opacity-20 backdrop-blur">
+                  <div class="small text-white-50 text-uppercase fw-semibold mb-1">Total Monthly Deductions</div>
+                  <div class="h4 mb-0 fw-bold text-warning" id="totalMonthlyDeductions">₹ 0</div>
+                  <small class="text-white-50">(PF + PT ₹200 + Tax)</small>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Mini KPI Cards Grid (PF, Gratuity, PT, Tax) -->
+          <div class="row g-3">
+            
+            <!-- Employee PF -->
+            <div class="col-6 col-md-3">
+              <div class="glass-card mini-kpi-card h-100">
+                <div class="kpi-icon pf">
+                  <i class="bi bi-piggy-bank"></i>
+                </div>
+                <div>
+                  <div class="kpi-title">Employee PF</div>
+                  <div class="kpi-value" id="employeePfVal">₹ 0</div>
+                  <small class="text-muted fs-8">12% of Basic</small>
+                </div>
+              </div>
+            </div>
+
+            <!-- Gratuity -->
+            <div class="col-6 col-md-3">
+              <div class="glass-card mini-kpi-card h-100">
+                <div class="kpi-icon gratuity">
+                  <i class="bi bi-award"></i>
+                </div>
+                <div>
+                  <div class="kpi-title">Gratuity</div>
+                  <div class="kpi-value" id="gratuityVal">₹ 0</div>
+                  <small class="text-muted fs-8">4.81% Basic</small>
+                </div>
+              </div>
+            </div>
+
+            <!-- Professional Tax -->
+            <div class="col-6 col-md-3">
+              <div class="glass-card mini-kpi-card h-100">
+                <div class="kpi-icon pt">
+                  <i class="bi bi-building font-bold"></i>
+                </div>
+                <div>
+                  <div class="kpi-title">Prof. Tax (PT)</div>
+                  <div class="kpi-value">₹ 200</div>
+                  <small class="text-muted fs-8">₹2,400 / year</small>
+                </div>
+              </div>
+            </div>
+
+            <!-- Income Tax -->
+            <div class="col-6 col-md-3">
+              <div class="glass-card mini-kpi-card h-100">
+                <div class="kpi-icon tax">
+                  <i class="bi bi-receipt"></i>
+                </div>
+                <div>
+                  <div class="kpi-title">Income Tax</div>
+                  <div class="kpi-value" id="incomeTaxVal">₹ 0</div>
+                  <small class="text-muted fs-8">TDS / Month</small>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Salary Distribution Chart & Overview -->
+          <div class="row g-4">
+            
+            <!-- Donut Chart -->
+            <div class="col-md-5">
+              <div class="glass-card p-4 h-100 d-flex flex-column align-items-center justify-content-center text-center">
+                <h3 class="h6 mb-3 text-muted text-uppercase fw-bold letter-spacing-1">CTC Allocation Breakdown</h3>
+                <div class="chart-container w-100">
+                  <canvas id="salaryChart"></canvas>
+                </div>
+              </div>
+            </div>
+
+            <!-- Quick Summary Breakdown Stats -->
+            <div class="col-md-7">
+              <div class="glass-card p-4 h-100 d-flex flex-column justify-content-between">
+                <div>
+                  <h3 class="h6 mb-3 text-muted text-uppercase fw-bold letter-spacing-1">CTC Summary Stats</h3>
+                  
+                  <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
+                    <span class="text-muted"><i class="bi bi-briefcase me-2 text-primary"></i>Gross Annual Salary</span>
+                    <strong class="fs-6" id="grossAnnualVal">₹ 0</strong>
+                  </div>
+
+                  <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
+                    <span class="text-muted"><i class="bi bi-building me-2 text-info"></i>Employer PF (Annual)</span>
+                    <span class="fw-bold text-info" id="employerPfAnnualVal">₹ 0</span>
+                  </div>
+
+                  <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
+                    <span class="text-muted"><i class="bi bi-award me-2 text-cyan"></i>Gratuity (Annual)</span>
+                    <span class="fw-bold text-cyan" id="gratuityAnnualVal">₹ 0</span>
+                  </div>
+
+                  <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
+                    <span class="text-muted"><i class="bi bi-shield-x me-2 text-danger"></i>Total Annual Deductions</span>
+                    <span class="fw-bold text-danger" id="annualDeductionsVal">₹ 0</span>
+                  </div>
+                </div>
+
+                <div class="mt-3 d-flex gap-2">
+                  <button type="button" id="copySummaryBtn" class="btn btn-outline-primary w-50 py-2">
+                    <i class="bi bi-clipboard me-1"></i>Copy Summary
+                  </button>
+                  <button type="button" onclick="window.print()" class="btn btn-primary w-50 py-2">
+                    <i class="bi bi-printer me-1"></i>Print / Export
+                  </button>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Itemized Breakdown Table -->
+          <div class="glass-card p-4">
+            <div class="d-flex align-items-center justify-content-between mb-3">
+              <h3 class="h5 mb-0"><i class="bi bi-table text-primary me-2"></i>Detailed Itemized Breakdown</h3>
+              <span class="badge bg-secondary-subtle text-secondary rounded-pill px-3">Monthly vs Yearly</span>
+            </div>
+
+            <div class="table-responsive">
+              <table class="table table-custom align-middle">
+                <thead>
+                  <tr>
+                    <th>Component</th>
+                    <th class="text-end">Monthly (₹)</th>
+                    <th class="text-end">Yearly (₹)</th>
+                    <th class="text-end">% of CTC</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <!-- Earnings -->
+                  <tr>
+                    <td><i class="bi bi-dot text-primary fs-4 align-middle"></i>Basic Salary</td>
+                    <td class="text-end fw-semibold" id="tbMonthlyBasic">₹ 0</td>
+                    <td class="text-end" id="tbYearlyBasic">₹ 0</td>
+                    <td class="text-end text-muted" id="tbPctBasic">0%</td>
+                  </tr>
+                  <tr>
+                    <td><i class="bi bi-dot text-info fs-4 align-middle"></i>HRA (House Rent Allowance - 50% Basic)</td>
+                    <td class="text-end fw-semibold" id="tbMonthlyHra">₹ 0</td>
+                    <td class="text-end" id="tbYearlyHra">₹ 0</td>
+                    <td class="text-end text-muted" id="tbPctHra">0%</td>
+                  </tr>
+                  <tr>
+                    <td><i class="bi bi-dot text-secondary fs-4 align-middle"></i>Special & Other Allowances</td>
+                    <td class="text-end fw-semibold" id="tbMonthlySpecial">₹ 0</td>
+                    <td class="text-end" id="tbYearlySpecial">₹ 0</td>
+                    <td class="text-end text-muted" id="tbPctSpecial">0%</td>
+                  </tr>
+                  
+                  <tr class="highlight-row">
+                    <td><strong>Gross Salary</strong></td>
+                    <td class="text-end text-primary" id="tbMonthlyGross">₹ 0</td>
+                    <td class="text-end text-primary" id="tbYearlyGross">₹ 0</td>
+                    <td class="text-end text-primary" id="tbPctGross">0%</td>
+                  </tr>
+
+                  <!-- Deductions -->
+                  <tr>
+                    <td><span class="badge bg-success-subtle text-success me-2">Deduction</span>Employee PF (12%)</td>
+                    <td class="text-end text-danger fw-semibold" id="tbMonthlyEmployeePf">- ₹ 0</td>
+                    <td class="text-end text-danger" id="tbYearlyEmployeePf">- ₹ 0</td>
+                    <td class="text-end text-muted" id="tbPctEmployeePf">0%</td>
+                  </tr>
+                  <tr>
+                    <td><span class="badge bg-warning-subtle text-warning me-2">Deduction</span>Professional Tax (PT)</td>
+                    <td class="text-end text-danger fw-semibold">- ₹ 200</td>
+                    <td class="text-end text-danger">- ₹ 2,400</td>
+                    <td class="text-end text-muted" id="tbPctPt">0%</td>
+                  </tr>
+                  <tr>
+                    <td><span class="badge bg-danger-subtle text-danger me-2">Deduction</span>Income Tax (TDS)</td>
+                    <td class="text-end text-danger fw-semibold" id="tbMonthlyTax">- ₹ 0</td>
+                    <td class="text-end text-danger" id="tbYearlyTax">- ₹ 0</td>
+                    <td class="text-end text-muted" id="tbPctTax">0%</td>
+                  </tr>
+
+                  <!-- Final Net In-Hand -->
+                  <tr class="highlight-row bg-primary-subtle">
+                    <td class="fs-6"><strong><i class="bi bi-cash-stack text-success me-2"></i>Net In-Hand Salary</strong></td>
+                    <td class="text-end fs-6 text-success fw-bold" id="tbMonthlyInHand">₹ 0</td>
+                    <td class="text-end fs-6 text-success fw-bold" id="tbYearlyInHand">₹ 0</td>
+                    <td class="text-end fs-6 text-success fw-bold" id="tbPctInHand">0%</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="text-center py-4 border-top border-secondary-subtle mt-5 text-muted small">
+    <div class="container">
+      <p class="mb-1">In-Hand Salary Calculator &copy; 2026. Designed with Bootstrap 5 &amp; JavaScript.</p>
+      <p class="mb-0 fs-8">Standard Professional Tax fixed at ₹200/month (₹2,400/year). Income Tax estimate based on Indian New Tax Regime rules.</p>
+    </div>
+  </footer>
+
+  <!-- Toast Notification for Copying -->
+  <div class="toast-container position-fixed bottom-0 end-0 p-3 no-print">
+    <div id="copyToast" class="toast align-items-center text-bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
+      <div class="d-flex">
+        <div class="toast-body">
+          <i class="bi bi-check-circle-fill me-2"></i>Salary summary copied to clipboard!
+        </div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  
+  <!-- Bootstrap 5 JS Bundle -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/bootstrap.bundle.min.js"></script>
+
+  <!-- Application Logic -->
+  <script src="js/app.js?v=1275"></script>
+</body>
+</html>
