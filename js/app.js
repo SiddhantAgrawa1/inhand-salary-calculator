@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const ctcRange = document.getElementById('ctcRange');
   const ctcFormattedBadge = document.getElementById('ctcFormattedBadge');
   const presetBtns = document.querySelectorAll('.preset-btn');
-  
+
   const basicPercentRange = document.getElementById('basicPercentRange');
   const basicPercentVal = document.getElementById('basicPercentVal');
   const monthlyBasicText = document.getElementById('monthlyBasicText');
@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const gratuityInCtc = document.getElementById('gratuityInCtc');
   const monthlyGratuityText = document.getElementById('monthlyGratuityText');
   const taxRegimeRadios = document.querySelectorAll('input[name="taxRegime"]');
-  
+
   const resetBtn = document.getElementById('resetBtn');
   const copySummaryBtn = document.getElementById('copySummaryBtn');
   const themeToggleBtn = document.getElementById('themeToggleBtn');
@@ -103,7 +103,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function calculateSalary() {
     const ctc = parseFloat(ctcInput.value) || 0;
     const basicPct = parseFloat(basicPercentRange.value) || 50;
-    
+
     // PF Rule selection
     const pfRule = document.querySelector('input[name="pfRule"]:checked')?.value || 'uncapped';
     const isEmployerPfIncluded = employerPfInCtc.checked;
@@ -135,8 +135,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const monthlyGross = annualGross / 12;
 
     // 5. Component Breakdown (HRA & Special Allowance)
-    // Standard HRA: 50% of Basic pay
-    const annualHra = Math.min(annualBasic * 0.50, Math.max(0, annualGross - annualBasic));
+    // Standard HRA: 5% of Basic pay
+    const annualHra = Math.min(annualBasic * 0.050, Math.max(0, annualGross - annualBasic));
     const monthlyHra = annualHra / 12;
 
     const annualSpecial = Math.max(0, annualGross - annualBasic - annualHra);
@@ -245,7 +245,7 @@ document.addEventListener('DOMContentLoaded', () => {
    */
   function computeNewTaxRegime(income) {
     if (income <= 0) return 0;
-    
+
     // Rebate u/s 87A: If net taxable income <= 12,75,000 (12.75 Lakhs), tax liability is 0
     if (income <= 1275000) {
       return 0;
@@ -281,7 +281,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // --- Chart.js Initialization & Update ---
   function initChart() {
     const ctx = document.getElementById('salaryChart').getContext('2d');
-    
+
     salaryChart = new Chart(ctx, {
       type: 'doughnut',
       data: {
@@ -316,7 +316,7 @@ document.addEventListener('DOMContentLoaded', () => {
           },
           tooltip: {
             callbacks: {
-              label: function(context) {
+              label: function (context) {
                 const label = context.label || '';
                 const val = context.raw || 0;
                 return ` ${label}: ${formatINR(val)}`;
@@ -331,7 +331,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function updateChartData({ inHand, employeePf, employerPf, gratuity, pt, tax }) {
     if (!salaryChart) return;
-    
+
     salaryChart.data.datasets[0].data = [inHand, employeePf, employerPf, gratuity, pt, tax];
     salaryChart.data.datasets[0].borderColor = getComputedStyle(document.documentElement).getPropertyValue('--bg-surface').trim();
     salaryChart.options.plugins.legend.labels.color = getComputedStyle(document.documentElement).getPropertyValue('--text-muted').trim();
@@ -408,8 +408,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const pt = "₹ 200";
     const tax = incomeTaxValEl.textContent;
 
-    const summaryText = 
-`Salary In-Hand Breakdown Summary:
+    const summaryText =
+      `Salary In-Hand Breakdown Summary:
 ----------------------------------
 Annual CTC: ${ctc}
 Monthly In-Hand Take Home: ${monthlyTakeHome}
@@ -435,10 +435,10 @@ Calculated with In-Hand Salary Calculator`;
   themeToggleBtn.addEventListener('click', () => {
     const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
     const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-    
+
     document.documentElement.setAttribute('data-theme', newTheme);
     localStorage.setItem('theme', newTheme);
-    
+
     if (newTheme === 'light') {
       themeIcon.className = 'bi bi-sun-fill text-warning';
     } else {
