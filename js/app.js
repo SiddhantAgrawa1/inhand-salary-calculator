@@ -21,6 +21,14 @@ document.addEventListener('DOMContentLoaded', () => {
   const gratuityInCtc = document.getElementById('gratuityInCtc');
   const monthlyGratuityText = document.getElementById('monthlyGratuityText');
   const taxRegimeRadios = document.querySelectorAll('input[name="taxRegime"]');
+  
+  // July Increment Selectors
+  const julyIncrement = document.getElementById('julyIncrement');
+  const incrementDetails = document.getElementById('incrementDetails');
+  const incrementPercentRange = document.getElementById('incrementPercentRange');
+  const incrementPercentVal = document.getElementById('incrementPercentVal');
+  const incrementPctText = document.getElementById('incrementPctText');
+  const monthlyInHandSubtext = document.getElementById('monthlyInHandSubtext');
 
   const resetBtn = document.getElementById('resetBtn');
   const copySummaryBtn = document.getElementById('copySummaryBtn');
@@ -110,42 +118,77 @@ document.addEventListener('DOMContentLoaded', () => {
     const isGratuityIncluded = gratuityInCtc.checked;
     const taxRegime = document.querySelector('input[name="taxRegime"]:checked')?.value || 'new';
 
-    // 1. Basic Pay Calculation
-    const annualBasic = ctc * (basicPct / 100);
-    const monthlyBasic = annualBasic / 12;
+    const isIncrementActive = julyIncrement.checked;
+    const incrementPct = parseFloat(incrementPercentRange.value) || 10;
 
-    // 2. Provident Fund (PF) Calculation (12% of Basic, capped or uncapped)
-    let monthlyPfPerSide = 0;
-    if (pfRule === 'capped') {
-      monthlyPfPerSide = Math.min(monthlyBasic * 0.12, 1800);
-    } else {
-      monthlyPfPerSide = monthlyBasic * 0.12;
+    // Helper to compute monthly components based on a given monthly CTC
+    function computeComponentsForCtc(monthlyCtcVal) {
+      const mBasic = monthlyCtcVal * (basicPct / 100);
+      let mPf = 0;
+      if (pfRule === 'capped') {
+        mPf = Math.min(mBasic * 0.12, 1800);
+      } else {
+        mPf = mBasic * 0.12;
+      }
+      const mGratuity = isGratuityIncluded ? mBasic * (15 / 26) / 12 : 0;
+      const mEmployerPf = isEmployerPfIncluded ? mPf : 0;
+      const mGross = Math.max(0, monthlyCtcVal - mEmployerPf - mGratuity);
+      const mHra = Math.min(mBasic * 0.050, Math.max(0, mGross - mBasic));
+      const mSpecial = Math.max(0, mGross - mBasic - mHra);
+      return {
+        basic: mBasic,
+        pf: mPf,
+        gratuity: mGratuity,
+        gross: mGross,
+        hra: mHra,
+        special: mSpecial
+      };
     }
-    const annualPfPerSide = monthlyPfPerSide * 12;
 
-    // 3. Gratuity Calculation (15/26 of monthly basic per year ≈ 4.80769% of annual basic)
-    const annualGratuity = isGratuityIncluded ? annualBasic * (15 / 26) / 12 : 0;
-    const monthlyGratuity = annualGratuity / 12;
+    let pre, post;
+    let actualAnnualCtc = ctc;
+
+    if (isIncrementActive) {
+      const monthlyCtc_pre = ctc / 12;
+      const monthlyCtc_post = (ctc * (1 + incrementPct / 100)) / 12;
+      pre = computeComponentsForCtc(monthlyCtc_pre);
+      post = computeComponentsForCtc(monthlyCtc_post);
+      actualAnnualCtc = (ctc * 0.25) + (ctc * (1 + incrementPct / 100) * 0.75);
+    } else {
+      const monthlyCtc = ctc / 12;
+      pre = computeComponentsForCtc(monthlyCtc);
+      post = pre;
+      actualAnnualCtc = ctc;
+    }
+
+    // 1. Basic Pay Calculation
+    const annualBasic = pre.basic * 3 + post.basic * 9;
+    const monthlyBasic = post.basic; // Represent post-increment basic as current
+
+    // 2. Provident Fund (PF) Calculation
+    const annualEmployeePf = pre.pf * 3 + post.pf * 9;
+    const annualEmployerPf = (isEmployerPfIncluded ? pre.pf : 0) * 3 + (isEmployerPfIncluded ? post.pf : 0) * 9;
+    const monthlyEmployeePf = post.pf; // Represent post-increment PF as current
+
+    // 3. Gratuity Calculation
+    const annualGratuity = (isGratuityIncluded ? pre.gratuity : 0) * 3 + (isGratuityIncluded ? post.gratuity : 0) * 9;
+    const monthlyGratuity = post.gratuity; // Represent post-increment Gratuity as current
 
     // 4. Gross Salary Calculation
-    const employerPfDeductedFromCtc = isEmployerPfIncluded ? annualPfPerSide : 0;
+    const employerPfDeductedFromCtc = isEmployerPfIncluded ? annualEmployerPf : 0;
     const gratuityDeductedFromCtc = isGratuityIncluded ? annualGratuity : 0;
 
-    const annualGross = Math.max(0, ctc - employerPfDeductedFromCtc - gratuityDeductedFromCtc);
-    const monthlyGross = annualGross / 12;
+    const annualGross = pre.gross * 3 + post.gross * 9;
+    const monthlyGross = post.gross; // Represent post-increment gross as current
 
     // 5. Component Breakdown (HRA & Special Allowance)
-    // Standard HRA: 5% of Basic pay
-    const annualHra = Math.min(annualBasic * 0.050, Math.max(0, annualGross - annualBasic));
-    const monthlyHra = annualHra / 12;
+    const annualHra = pre.hra * 3 + post.hra * 9;
+    const monthlyHra = post.hra; // Represent post-increment HRA as current
 
-    const annualSpecial = Math.max(0, annualGross - annualBasic - annualHra);
-    const monthlySpecial = annualSpecial / 12;
+    const annualSpecial = pre.special * 3 + post.special * 9;
+    const monthlySpecial = post.special; // Represent post-increment special as current
 
     // 6. Employee Deductions
-    const monthlyEmployeePf = monthlyPfPerSide;
-    const annualEmployeePf = annualPfPerSide;
-
     const monthlyPt = PROFESSIONAL_TAX_MONTHLY;
     const annualPt = PROFESSIONAL_TAX_YEARLY;
 
@@ -160,16 +203,23 @@ document.addEventListener('DOMContentLoaded', () => {
     const monthlyTax = annualTax / 12;
 
     // 8. Net In-Hand Salary
-    const totalMonthlyDeductions = monthlyEmployeePf + monthlyPt + monthlyTax;
     const totalAnnualDeductions = annualEmployeePf + annualPt + annualTax;
 
-    const monthlyInHand = Math.max(0, monthlyGross - totalMonthlyDeductions);
-    const annualInHand = monthlyInHand * 12;
+    const monthlyInHand_pre = Math.max(0, pre.gross - pre.pf - monthlyPt - monthlyTax);
+    const monthlyInHand_post = Math.max(0, post.gross - post.pf - monthlyPt - monthlyTax);
+    const annualInHand = monthlyInHand_pre * 3 + monthlyInHand_post * 9;
+    
+    const monthlyInHand = monthlyInHand_post; // Represent post-increment in-hand as main monthly
+    const totalMonthlyDeductions = monthlyEmployeePf + monthlyPt + monthlyTax; // Post-increment monthly deductions
 
     // --- Update DOM UI ---
 
     // Badges & Labels
-    ctcFormattedBadge.textContent = `${formatLakhs(ctc)} / yr`;
+    if (isIncrementActive) {
+      ctcFormattedBadge.textContent = `${formatLakhs(ctc)} / yr (Base) | Eff: ${formatLakhs(actualAnnualCtc)}`;
+    } else {
+      ctcFormattedBadge.textContent = `${formatLakhs(ctc)} / yr`;
+    }
     basicPercentVal.textContent = `${basicPct}%`;
     monthlyBasicText.textContent = formatINR(monthlyBasic);
     monthlyGratuityText.textContent = formatINR(monthlyGratuity).replace('₹', '');
@@ -179,6 +229,15 @@ document.addEventListener('DOMContentLoaded', () => {
     annualInHandEl.textContent = formatINR(annualInHand);
     totalMonthlyDeductionsEl.textContent = formatINR(totalMonthlyDeductions);
 
+    // Hero Card Subtext for Increment Details
+    if (isIncrementActive) {
+      monthlyInHandSubtext.style.display = 'block';
+      monthlyInHandSubtext.textContent = `Apr-Jun: ${formatINR(monthlyInHand_pre)}/mo | Jul-Mar: ${formatINR(monthlyInHand_post)}/mo`;
+    } else {
+      monthlyInHandSubtext.style.display = 'none';
+      monthlyInHandSubtext.textContent = '';
+    }
+
     // Mini Cards
     employeePfValEl.textContent = formatINR(monthlyEmployeePf);
     gratuityValEl.textContent = formatINR(monthlyGratuity);
@@ -186,40 +245,53 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Summary Stats
     grossAnnualValEl.textContent = formatINR(annualGross);
-    employerPfAnnualValEl.textContent = formatINR(annualPfPerSide);
+    employerPfAnnualValEl.textContent = formatINR(isEmployerPfIncluded ? annualEmployerPf : pre.pf * 3 + post.pf * 9);
     gratuityAnnualValEl.textContent = formatINR(annualGratuity);
     annualDeductionsValEl.textContent = formatINR(totalAnnualDeductions);
 
     // Table Itemized Breakdown
-    tbMonthlyBasic.textContent = formatINR(monthlyBasic);
+    const activeCtc = actualAnnualCtc;
+
+    if (isIncrementActive) {
+      tbMonthlyBasic.innerHTML = `<div>${formatINR(post.basic)}</div><div class="small text-muted fs-8" style="font-size: 0.75rem;">${formatINR(pre.basic)} (Apr-Jun)</div>`;
+      tbMonthlyHra.innerHTML = `<div>${formatINR(post.hra)}</div><div class="small text-muted fs-8" style="font-size: 0.75rem;">${formatINR(pre.hra)} (Apr-Jun)</div>`;
+      tbMonthlySpecial.innerHTML = `<div>${formatINR(post.special)}</div><div class="small text-muted fs-8" style="font-size: 0.75rem;">${formatINR(pre.special)} (Apr-Jun)</div>`;
+      tbMonthlyGross.innerHTML = `<div>${formatINR(post.gross)}</div><div class="small text-muted fs-8" style="font-size: 0.75rem;">${formatINR(pre.gross)} (Apr-Jun)</div>`;
+      tbMonthlyEmployeePf.innerHTML = `<div>- ${formatINR(post.pf)}</div><div class="small text-muted fs-8" style="font-size: 0.75rem;">- ${formatINR(pre.pf)} (Apr-Jun)</div>`;
+      tbMonthlyTax.innerHTML = `- ${formatINR(monthlyTax)}`;
+      tbMonthlyInHand.innerHTML = `<div>${formatINR(monthlyInHand_post)}</div><div class="small text-muted fs-8" style="font-size: 0.75rem;">${formatINR(monthlyInHand_pre)} (Apr-Jun)</div>`;
+    } else {
+      tbMonthlyBasic.textContent = formatINR(pre.basic);
+      tbMonthlyHra.textContent = formatINR(pre.hra);
+      tbMonthlySpecial.textContent = formatINR(pre.special);
+      tbMonthlyGross.textContent = formatINR(pre.gross);
+      tbMonthlyEmployeePf.textContent = `- ${formatINR(pre.pf)}`;
+      tbMonthlyTax.textContent = `- ${formatINR(monthlyTax)}`;
+      tbMonthlyInHand.textContent = formatINR(monthlyInHand_pre);
+    }
+
     tbYearlyBasic.textContent = formatINR(annualBasic);
-    tbPctBasic.textContent = `${((annualBasic / ctc) * 100).toFixed(1)}%`;
+    tbPctBasic.textContent = `${((annualBasic / activeCtc) * 100).toFixed(1)}%`;
 
-    tbMonthlyHra.textContent = formatINR(monthlyHra);
     tbYearlyHra.textContent = formatINR(annualHra);
-    tbPctHra.textContent = `${((annualHra / ctc) * 100).toFixed(1)}%`;
+    tbPctHra.textContent = `${((annualHra / activeCtc) * 100).toFixed(1)}%`;
 
-    tbMonthlySpecial.textContent = formatINR(monthlySpecial);
     tbYearlySpecial.textContent = formatINR(annualSpecial);
-    tbPctSpecial.textContent = `${((annualSpecial / ctc) * 100).toFixed(1)}%`;
+    tbPctSpecial.textContent = `${((annualSpecial / activeCtc) * 100).toFixed(1)}%`;
 
-    tbMonthlyGross.textContent = formatINR(monthlyGross);
     tbYearlyGross.textContent = formatINR(annualGross);
-    tbPctGross.textContent = `${((annualGross / ctc) * 100).toFixed(1)}%`;
+    tbPctGross.textContent = `${((annualGross / activeCtc) * 100).toFixed(1)}%`;
 
-    tbMonthlyEmployeePf.textContent = `- ${formatINR(monthlyEmployeePf)}`;
     tbYearlyEmployeePf.textContent = `- ${formatINR(annualEmployeePf)}`;
-    tbPctEmployeePf.textContent = `${((annualEmployeePf / ctc) * 100).toFixed(1)}%`;
+    tbPctEmployeePf.textContent = `${((annualEmployeePf / activeCtc) * 100).toFixed(1)}%`;
 
-    tbPctPt.textContent = `${((annualPt / ctc) * 100).toFixed(1)}%`;
+    tbPctPt.textContent = `${((annualPt / activeCtc) * 100).toFixed(1)}%`;
 
-    tbMonthlyTax.textContent = `- ${formatINR(monthlyTax)}`;
     tbYearlyTax.textContent = `- ${formatINR(annualTax)}`;
-    tbPctTax.textContent = `${((annualTax / ctc) * 100).toFixed(1)}%`;
+    tbPctTax.textContent = `${((annualTax / activeCtc) * 100).toFixed(1)}%`;
 
-    tbMonthlyInHand.textContent = formatINR(monthlyInHand);
     tbYearlyInHand.textContent = formatINR(annualInHand);
-    tbPctInHand.textContent = `${((annualInHand / ctc) * 100).toFixed(1)}%`;
+    tbPctInHand.textContent = `${((annualInHand / activeCtc) * 100).toFixed(1)}%`;
 
     // --- Update Chart ---
     updateChartData({
@@ -385,6 +457,23 @@ document.addEventListener('DOMContentLoaded', () => {
   gratuityInCtc.addEventListener('change', calculateSalary);
   taxRegimeRadios.forEach(r => r.addEventListener('change', calculateSalary));
 
+  // July Increment Listeners
+  julyIncrement.addEventListener('change', () => {
+    if (julyIncrement.checked) {
+      incrementDetails.classList.remove('d-none');
+    } else {
+      incrementDetails.classList.add('d-none');
+    }
+    calculateSalary();
+  });
+
+  incrementPercentRange.addEventListener('input', (e) => {
+    const val = e.target.value;
+    incrementPercentVal.textContent = `${val}%`;
+    incrementPctText.textContent = `${val}%`;
+    calculateSalary();
+  });
+
   // Reset Button
   resetBtn.addEventListener('click', () => {
     ctcInput.value = 1200000;
@@ -394,33 +483,101 @@ document.addEventListener('DOMContentLoaded', () => {
     employerPfInCtc.checked = true;
     gratuityInCtc.checked = true;
     document.getElementById('regimeNew').checked = true;
+    julyIncrement.checked = false;
+    incrementDetails.classList.add('d-none');
+    incrementPercentRange.value = 10;
+    incrementPercentVal.textContent = '10%';
+    incrementPctText.textContent = '10%';
     updateActivePresetBtn(1200000);
     calculateSalary();
   });
 
   // Copy Summary Button
   copySummaryBtn.addEventListener('click', () => {
-    const ctc = formatINR(ctcInput.value);
-    const monthlyTakeHome = monthlyInHandEl.textContent;
-    const annualTakeHome = annualInHandEl.textContent;
-    const pf = employeePfValEl.textContent;
-    const gratuity = gratuityValEl.textContent;
-    const pt = "₹ 200";
-    const tax = incomeTaxValEl.textContent;
+    const ctc = parseFloat(ctcInput.value) || 0;
+    const isIncrementActive = julyIncrement.checked;
+    const incrementPct = parseFloat(incrementPercentRange.value) || 10;
+    const basicPct = parseFloat(basicPercentRange.value) || 50;
 
-    const summaryText =
-      `Salary In-Hand Breakdown Summary:
+    const pfRule = document.querySelector('input[name="pfRule"]:checked')?.value || 'uncapped';
+    const isEmployerPfIncluded = employerPfInCtc.checked;
+    const isGratuityIncluded = gratuityInCtc.checked;
+    const taxRegime = document.querySelector('input[name="taxRegime"]:checked')?.value || 'new';
+
+    function computeComponentsForCtc(monthlyCtcVal) {
+      const mBasic = monthlyCtcVal * (basicPct / 100);
+      let mPf = 0;
+      if (pfRule === 'capped') {
+        mPf = Math.min(mBasic * 0.12, 1800);
+      } else {
+        mPf = mBasic * 0.12;
+      }
+      const mGratuity = isGratuityIncluded ? mBasic * (15 / 26) / 12 : 0;
+      const mEmployerPf = isEmployerPfIncluded ? mPf : 0;
+      const mGross = Math.max(0, monthlyCtcVal - mEmployerPf - mGratuity);
+      return { basic: mBasic, pf: mPf, gratuity: mGratuity, gross: mGross };
+    }
+
+    let pre, post;
+    let actualAnnualCtc = ctc;
+    if (isIncrementActive) {
+      const monthlyCtc_pre = ctc / 12;
+      const monthlyCtc_post = (ctc * (1 + incrementPct / 100)) / 12;
+      pre = computeComponentsForCtc(monthlyCtc_pre);
+      post = computeComponentsForCtc(monthlyCtc_post);
+      actualAnnualCtc = (ctc * 0.25) + (ctc * (1 + incrementPct / 100) * 0.75);
+    } else {
+      const monthlyCtc = ctc / 12;
+      pre = computeComponentsForCtc(monthlyCtc);
+      post = pre;
+    }
+
+    const annualGross = pre.gross * 3 + post.gross * 9;
+    let annualTax = 0;
+    if (taxRegime === 'new') {
+      const taxableIncome = Math.max(0, annualGross - STANDARD_DEDUCTION);
+      annualTax = computeNewTaxRegime(taxableIncome);
+    }
+    const monthlyTax = annualTax / 12;
+
+    const monthlyInHand_pre = Math.max(0, pre.gross - pre.pf - 200 - monthlyTax);
+    const monthlyInHand_post = Math.max(0, post.gross - post.pf - 200 - monthlyTax);
+    const annualInHand = monthlyInHand_pre * 3 + monthlyInHand_post * 9;
+
+    let summaryText = '';
+    if (isIncrementActive) {
+      summaryText =
+        `Salary In-Hand Breakdown Summary (with July Increment of ${incrementPct}%):
 ----------------------------------
-Annual CTC: ${ctc}
-Monthly In-Hand Take Home: ${monthlyTakeHome}
-Annual In-Hand Take Home: ${annualTakeHome}
+Base Annual CTC: ${formatINR(ctc)}
+Effective Annual CTC: ${formatINR(actualAnnualCtc)}
+Monthly In-Hand Take Home (Apr-Jun): ${formatINR(monthlyInHand_pre)}
+Monthly In-Hand Take Home (Jul-Mar): ${formatINR(monthlyInHand_post)}
+Annual In-Hand Take Home: ${formatINR(annualInHand)}
 ----------------------------------
-Monthly Employee PF: ${pf}
-Monthly Gratuity: ${gratuity}
-Monthly Professional Tax (PT): ${pt}
-Monthly Income Tax (TDS): ${tax}
+Monthly Employee PF (Apr-Jun): ${formatINR(pre.pf)}
+Monthly Employee PF (Jul-Mar): ${formatINR(post.pf)}
+Monthly Gratuity (Apr-Jun): ${formatINR(pre.gratuity)}
+Monthly Gratuity (Jul-Mar): ${formatINR(post.gratuity)}
+Monthly Professional Tax (PT): ₹ 200
+Monthly Income Tax (TDS): ${formatINR(monthlyTax)}
 ----------------------------------
 Calculated with In-Hand Salary Calculator`;
+    } else {
+      summaryText =
+        `Salary In-Hand Breakdown Summary:
+----------------------------------
+Annual CTC: ${formatINR(ctc)}
+Monthly In-Hand Take Home: ${formatINR(monthlyInHand_pre)}
+Annual In-Hand Take Home: ${formatINR(annualInHand)}
+----------------------------------
+Monthly Employee PF: ${formatINR(pre.pf)}
+Monthly Gratuity: ${formatINR(pre.gratuity)}
+Monthly Professional Tax (PT): ₹ 200
+Monthly Income Tax (TDS): ${formatINR(monthlyTax)}
+----------------------------------
+Calculated with In-Hand Salary Calculator`;
+    }
 
     navigator.clipboard.writeText(summaryText).then(() => {
       const toastEl = document.getElementById('copyToast');
